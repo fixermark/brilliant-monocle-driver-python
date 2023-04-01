@@ -1,3 +1,6 @@
+# Copyright 2023 Mark T. Tomczak
+# License at https://github.com/fixermark/brilliant-monocle-driver-python/blob/main/LICENSE
+
 import asyncio
 import datetime
 import logging
