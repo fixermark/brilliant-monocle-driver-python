@@ -4,7 +4,7 @@ import logging
 from bleak import BleakScanner, BleakClient
 from .batched import batched
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 class MonocleException(Exception):
     pass

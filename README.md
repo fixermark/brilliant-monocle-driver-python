@@ -1,18 +1,18 @@
-# Monocle Driver
+# Brilliant Monocle Driver
 
-`monocle-driver` is a simple Python library that uses
+`brilliant-monocle-driver` is a simple Python library that uses
 [Bleak](https://github.com/hbldh/bleak) to connect to and control a [Brilliant Labs Monocle](https://www.brilliantmonocle.com/) display device.
 
 # Install
 
-`pip install monocle-driver`
+`pip install brilliant-monocle-driver`
 
 
 # Usage example
 
 ``` Python
 import asyncio
-from monocle-driver import Monocle
+from brilliant_monocle_driver import Monocle
 
 def callback(channel, text_in):
   """
@@ -57,7 +57,7 @@ asyncio.run(execute())
 
 # Details
 
-`monocle-driver` attaches to a Monocle via the UART characteristics exposed over
+`brilliant-monocle-driver` attaches to a Monocle via the UART characteristics exposed over
 BLE in Monocle's default firmware, as specified in the
 [Monocle documentation](https://docs.brilliantmonocle.com/micropython/micropython/#under-the-hood). Once
 connection is established, commands can be sent directly to the Monocle as
