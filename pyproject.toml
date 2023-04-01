@@ -1,0 +1,21 @@
+# pyproject.toml
+
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brilliant-monocle-driver"
+description = "A driver to connect to and control a Brilliant Labs Monocle peripheral"
+readme = "README.md"
+authors = [{ name = "Mark T. Tomczak", email = "iam@fixermark.com"}]
+license = {file = "LICENSE" }
+keywords = ["Brilliant Labs", "AR", "Bluetooth"]
+dependencies [
+    "bleak >= 0.20.1"
+]
+requires-python = ">=3.9"
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = {attr = "brilliant-monocle-driver.__version__"}
