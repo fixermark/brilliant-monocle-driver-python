@@ -4,15 +4,22 @@ import logging
 from bleak import BleakScanner, BleakClient
 from .batched import batched
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 class MonocleException(Exception):
     pass
 
 class Monocle:
+    # MTU size. Set this to a different value if you find
+    # difficulty connecting to the Monocle consistently.
+    #
+    # 23 is the default, but Monocle sould support 128
+    MTU_SIZE = 128
     logger = logging.getLogger(__name__)
+
     def get_logger():
-        return logger
+        """Access the logger for Monocles"""
+        return Monocle.logger
 
     def __init__(self, notify_callback, address=None):
         """
@@ -28,7 +35,6 @@ class Monocle:
         self.client = None
         self.out_channel = None
         self.in_channel = None
-        self.mtu_size = None
         self.connected = False
         self.address = address
         self.notify_callback = notify_callback
@@ -58,7 +64,6 @@ class Monocle:
         self.client = client
         self.out_channel = rx_characteristic
         self.in_channel = tx_characteristic
-        self.mtu_size = client.mtu_size
         self.address = address_to_connect
         Monocle.logger.info("Connected {}".format(self.address))
         self.connected = True
@@ -75,7 +80,6 @@ class Monocle:
         self.client = None
         self.out_channel = None
         self.in_channel = None
-        self.mtu_size = None
         self.connected = False
 
     async def __aenter__(self):
@@ -146,6 +150,9 @@ class Monocle:
 
         input = input.replace("\n", "\r\n")
 
+        mtu_size = Monocle.MTU_SIZE
+        Monocle.logger.info("MTU size is {}".format(mtu_size))
+
         # Ctrl-C to terminate any previously-running code, then
         # need to wrap input in CTRL-A / CTRL-D to get into raw repl mode and
         # execute the content.
@@ -154,7 +161,7 @@ class Monocle:
         buffer = input.encode()
 
         batch_count = 1
-        for chunk in batched(buffer, self.mtu_size - 4):
+        for chunk in batched(buffer, mtu_size - 3):
             Monocle.logger.info("Sending batch {}".format(batch_count))
             batch_count += 1
             await self.client.write_gatt_char(self.out_channel, chunk)
