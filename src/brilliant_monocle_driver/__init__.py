@@ -34,16 +34,18 @@ class Monocle:
         self.notify_callback = notify_callback
 
     def _on_notify(self, channel, bytes_in):
+        """Internal handler for dispatching notifications to the notify_callback."""
         self.notify_callback(channel, bytes_in.decode("utf-8"))
 
 
     async def connect(self):
         """
-        Statically connect to the only monocle found, or the monocle at address if
+        Connect to the only monocle available, or the monocle at address if
         one was provided.
 
         Raises MonocleException if no monocle is found at the address, no
-        monocles (or too many monocles) are found, or a connection error occurs.
+        monocles (or too many monocles) are found when no address is provided,
+        or a connection error occurs.
         """
         address_to_connect = self.address
         if address_to_connect is None:
@@ -61,8 +63,13 @@ class Monocle:
         Monocle.logger.info("Connected {}".format(self.address))
         self.connected = True
 
-
     async def disconnect(self):
+        """
+        Disconnect from monocle, if connected.
+        """
+        if not self.connected:
+            return
+
         await self.client.disconnect()
         Monocle.logger.info("Disconnected {}".format(self.address))
         self.client = None
@@ -74,10 +81,8 @@ class Monocle:
     async def __aenter__(self):
         await self.connect()
 
-
     async def __aexit__(self, exc_type, exc, tb):
         await self.disconnect()
-
 
     async def _get_uart(self, address):
         """
@@ -143,7 +148,7 @@ class Monocle:
 
         # Ctrl-C to terminate any previously-running code, then
         # need to wrap input in CTRL-A / CTRL-D to get into raw repl mode and
-        # execute the content
+        # execute the content.
         input = '\x03\x01' + input + '\x04'
 
         buffer = input.encode()
