@@ -3,11 +3,20 @@
 
 import asyncio
 import datetime
+import itertools
 import logging
 from bleak import BleakScanner, BleakClient
 from .batched import batched
+from .line_reader import LineReader
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
+
+TOUCH_CALLBACK_COMMAND = """
+import touch
+touch.callback(touch.A, lambda x: print("[EVENT:touch-A]"))
+touch.callback(touch.B, lambda x: print("[EVENT:touch-B]"))
+"""
+
 
 class MonocleException(Exception):
     pass
@@ -24,16 +33,11 @@ class Monocle:
         """Access the logger for Monocles"""
         return Monocle.logger
 
-    def __init__(self, notify_callback, address=None):
+    def __init__(self, notify_callback=None, address=None):
         """
-        Prepares a Monocle for connection. Specify a callback and optional
+        Prepares a Monocle for connection. Specify an optional callback and optional
         address to connect to.
-
-        Raises MonocleException if callback not provided.
         """
-
-        if notify_callback is None:
-            raise MonocleException("Must provide a notification callback")
 
         self.client = None
         self.out_channel = None
@@ -41,11 +45,32 @@ class Monocle:
         self.connected = False
         self.address = address
         self.notify_callback = notify_callback
+        self.line_reader = LineReader('\r\n')
+        self.line_listeners = {}
+        self.next_line_listener_id = itertools.count(1,1)
 
-    def _on_notify(self, channel, bytes_in):
-        """Internal handler for dispatching notifications to the notify_callback."""
-        self.notify_callback(channel, bytes_in.decode("utf-8"))
+        self.touch_events_installed = False
+        self.a_callback = None
+        self.b_callback = None
 
+    def add_line_listener(self, line_listener):
+        """
+        Adds a callback to fire when a full line is received from the device.
+
+        Returns a token that can be passed to remove_line_listener to remove this callback.
+        """
+        listener_id = next(self.next_line_listener_id)
+        Monocle.logger.info("Installing line listener id {}".format(listener_id))
+
+        self.line_listeners[listener_id] = line_listener
+        return listener_id
+
+    def remove_line_listener(self, token):
+        """
+        Remove the line listener corresponding to the token
+        """
+        Monocle.logger.info("Removing line listener id {}".format(token))
+        del self.line_listeners[token]
 
     async def connect(self):
         """
@@ -169,5 +194,51 @@ class Monocle:
             batch_count += 1
             await self.client.write_gatt_char(self.out_channel, chunk)
 
+    async def install_touch_events(self):
+        """
+        Installs touch detectors. This enables touch callbacks (and replaces
+        any `touch.callback` values set on the Monocle).
 
+        note that setting any new `touch.callback` configurations will
+        break the touch detectors; call `install_touch_events` again to
+        restore them.
+        """
+
+        if not self.touch_events_installed:
+            self.touch_events_installed = True
+            self.add_line_listener(self._touch_line_listener)
+
+        await self.send(TOUCH_CALLBACK_COMMAND)
+
+    def set_a_touch_callback(self, a_callback):
+        """
+        Sets the touch callback for A taps
+        """
+        self.a_callback = a_callback
+
+    def set_b_touch_callback(self, b_callback):
+        """
+        Sets the touch callback for B taps
+        """
+        self.b_callback = b_callback
+
+    def _on_notify(self, channel, bytes_in):
+        """Internal handler for dispatching notifications to the notify_callback."""
+        text_in = bytes_in.decode("utf-8")
+        Monocle.logger.info("Notify: <<{}>>".format(text_in))
+        if self.notify_callback is not None:
+            self.notify_callback(channel, text_in)
+
+        self.line_reader.input(text_in)
+
+        for line in self.line_reader.get_lines():
+            for listener in self.line_listeners.values():
+                listener(line)
+
+    def _touch_line_listener(self, line):
+        """Internal line listener to watch for A and B touch events."""
+        if "[EVENT:touch-A]" in line and self.a_callback is not None:
+            self.a_callback()
+        if "[EVENT:touch-B]" in line and self.b_callback is not None:
+            self.b_callback()
 

@@ -8,7 +8,9 @@
 `pip install brilliant-monocle-driver`
 
 
-# Usage example
+# Usage examples
+
+## Display battery and then blank screen
 
 ``` Python
 import asyncio
@@ -26,6 +28,7 @@ COMMAND = """
 import display
 import device
 import time
+from brilliant_monocle_driver import Monocle
 
 def show_battery(count):
   batLvl = str(device.battery_level())
@@ -53,6 +56,29 @@ async def execute():
 
 asyncio.run(execute())
 
+```
+
+## Receive touch events
+
+```Python
+import asyncio
+from brilliant_monocle_driver import Monocle
+
+def a_touch():
+    print("A touch!")
+
+def b_touch():
+    print("B touch!")
+
+async def execute():
+    mono = Monocle()
+    async with mono:
+        await mono.install_touch_events()
+        mono.set_a_touch_callback(a_touch)
+        mono.set_b_touch_callback(b_touch)
+        await asyncio.sleep(30000)
+
+asyncio.run(execute())
 ```
 
 # Details

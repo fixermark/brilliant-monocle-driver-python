@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+* Added support for proxying touch events to a Python script
+
 ## 0.1.2
 
 * Updates to package configuration (repository, added this Changelog).
